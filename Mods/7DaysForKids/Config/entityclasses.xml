@@ -1,0 +1,26 @@
+<configs>
+
+  <!-- ============================================================ -->
+  <!-- 7 Days For Kids — Gore Visual Removal                       -->
+  <!-- Removes blood death particles, dismemberment tags, and       -->
+  <!-- dismemberment multipliers from ALL entity classes.           -->
+  <!-- ============================================================ -->
+
+  <!-- 1. Remove blood splatter on death — targets ONLY blood_death value,
+       preserving supply_crate_gib_Prefab on supply crates.
+       Affects: playerMale, zombieTemplateMale (inherited by all zombies),
+       animalTemplateTimid, animalDoe, animalTemplateHostile, NPC entities. -->
+  <set xpath="/entity_classes/entity_class/property[@name='ParticleOnDeath'][@value='blood_death']/@value"></set>
+
+  <!-- 2. Remove ALL dismemberment gore tags (~323 properties).
+       Covers zombie templates, individual zombie overrides, and animal entities.
+       Without these tags, no limb separation or gore prefabs spawn on hit/death. -->
+  <remove xpath="/entity_classes/entity_class/property[starts-with(@name,'DismemberTag')]"/>
+
+  <!-- 3. Belt-and-suspenders: set ALL dismemberment multipliers to 0 (~83 properties).
+       Covers template (1/1/1), Feral overrides (.7), and Radiated overrides (.4).
+       Redundant with tag removal but prevents edge cases where engine checks
+       multiplier without verifying tag existence. -->
+  <set xpath="/entity_classes/entity_class/property[starts-with(@name,'DismemberMultiplier')]/@value">0</set>
+
+</configs>
