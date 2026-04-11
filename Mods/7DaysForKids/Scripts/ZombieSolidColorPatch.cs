@@ -88,8 +88,21 @@ namespace SevenDaysForKids
             ApplySolidColor(entity, finalColor);
         }
 
+        // Cached unlit shader — looked up once on first use
+        private static Shader _unlitShader;
+        private static bool _shaderLookedUp;
+
         private static void ApplySolidColor(Entity entity, Color color)
         {
+            // Look up Unlit/Color shader once
+            if (!_shaderLookedUp)
+            {
+                _unlitShader = Shader.Find("Unlit/Color");
+                if (_unlitShader == null)
+                    _unlitShader = Shader.Find("Hidden/InternalColoredString");
+                _shaderLookedUp = true;
+            }
+
             Renderer[] renderers = entity.GetComponentsInChildren<Renderer>(true);
 
             foreach (Renderer renderer in renderers)
@@ -97,36 +110,61 @@ namespace SevenDaysForKids
                 if (renderer is ParticleSystemRenderer)
                     continue;
 
-                // Access .materials once — Unity creates per-instance copies on first access.
-                // This is intentional: each zombie needs its own color.
                 Material[] mats = renderer.materials;
-                foreach (Material mat in mats)
+                for (int i = 0; i < mats.Length; i++)
                 {
-                    // Set solid color
-                    if (mat.HasProperty("_Color"))
-                        mat.SetColor("_Color", color);
+                    Material mat = mats[i];
 
-                    // Replace diffuse texture with white so color shows through
-                    if (mat.HasProperty("_MainTex"))
-                        mat.SetTexture("_MainTex", Texture2D.whiteTexture);
-
-                    // Remove detail textures for clean solid look
-                    if (mat.HasProperty("_BumpMap"))
-                        mat.SetTexture("_BumpMap", null);
-                    if (mat.HasProperty("_MetallicGlossMap"))
-                        mat.SetTexture("_MetallicGlossMap", null);
-                    if (mat.HasProperty("_OcclusionMap"))
-                        mat.SetTexture("_OcclusionMap", null);
-
-                    // Matte finish — no metallic sheen, low gloss
-                    if (mat.HasProperty("_Metallic"))
-                        mat.SetFloat("_Metallic", 0f);
-                    if (mat.HasProperty("_Glossiness"))
-                        mat.SetFloat("_Glossiness", 0.2f);
+                    if (_unlitShader != null)
+                    {
+                        // Primary: replace shader entirely — guarantees pure solid color
+                        mat.shader = _unlitShader;
+                        mat.color = color;
+                    }
+                    else
+                    {
+                        // Fallback: aggressively override Standard shader properties
+                        ForceSolidColorStandard(mat, color);
+                    }
                 }
-                // Write back the modified materials array
                 renderer.materials = mats;
             }
+        }
+
+        private static void ForceSolidColorStandard(Material mat, Color color)
+        {
+            // Set color on every known color property
+            if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", color);
+
+            // Replace main texture with white 1x1 so color shows through
+            if (mat.HasProperty("_MainTex"))
+                mat.SetTexture("_MainTex", Texture2D.whiteTexture);
+
+            // Nuke ALL texture maps that could override the solid look
+            string[] texturesToClear = {
+                "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
+                "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
+                "_EmissionMap", "_DetailMask", "_SpecGlossMap"
+            };
+            foreach (string texName in texturesToClear)
+            {
+                if (mat.HasProperty(texName))
+                    mat.SetTexture(texName, null);
+            }
+
+            // Force matte flat finish
+            if (mat.HasProperty("_Metallic"))
+                mat.SetFloat("_Metallic", 0f);
+            if (mat.HasProperty("_Glossiness"))
+                mat.SetFloat("_Glossiness", 0f);
+            if (mat.HasProperty("_SmoothnessTextureChannel"))
+                mat.SetFloat("_SmoothnessTextureChannel", 0f);
+
+            // Add subtle emission to reinforce the color
+            mat.EnableKeyword("_EMISSION");
+            if (mat.HasProperty("_EmissionColor"))
+                mat.SetColor("_EmissionColor", color * 0.3f);
         }
 
         private static Color ApplyVariant(Color c, string variant)
