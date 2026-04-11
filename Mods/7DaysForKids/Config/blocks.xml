@@ -1,0 +1,35 @@
+<configs>
+
+  <!-- ============================================================ -->
+  <!-- 7 Days For Kids — Gore Block Removal / Replacement           -->
+  <!-- Removes decorative gore blocks (corpses, bones, skulls) and  -->
+  <!-- replaces loot-bearing gore containers with clean models.     -->
+  <!-- ============================================================ -->
+
+  <!-- ======== GORE BLOCKS — DECORATIVE (harvest-only, no loot container) ======== -->
+  <!-- These become air in POIs. Harvest drops (rotting flesh, bone) are lost -->
+  <!-- but these aren't critical gameplay items. -->
+
+  <remove xpath="/blocks/block[@name='goreBlockAnimal']"/>
+  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse']"/>
+  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse1']"/>
+  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse2']"/>
+  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse2Offset']"/>
+  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse3']"/>
+  <remove xpath="/blocks/block[@name='goreBlockHumanBones']"/>
+  <remove xpath="/blocks/block[@name='goreHumanSkull']"/>
+
+  <!-- ======== HANGING CORPSES — DECORATIVE (harvest-only) ======== -->
+  <!-- 3 variants (Log1, Log2, Log3) x 6 colors = 18 blocks. All become air. -->
+
+  <remove xpath="/blocks/block[contains(@name,'corpseHangingLog')]"/>
+
+  <!-- ======== GORE BATHTUB — LOOT CONTAINER (keep loot, clean up model) ======== -->
+  <!-- cntBathTubGore: change gore bathtub model to clean empty bathtub, -->
+  <!-- remove blood_impact destroy effect, keep Class=Loot and LootList. -->
+
+  <set xpath="/blocks/block[@name='cntBathTubGore']/property[@name='Model']/@value">@:Entities/LootContainers/bathTubEmptyPrefab.prefab</set>
+  <remove xpath="/blocks/block[@name='cntBathTubGore']/property[@name='Censor']"/>
+  <set xpath="/blocks/block[@name='cntBathTubGore']/property[@name='DowngradeFX']/@value">organicdestroy3</set>
+
+</configs>
