@@ -1,0 +1,12 @@
+{
+  "tooling": {
+    "codingAgents": {
+      "agent_1775433898536_1": {
+        "acSessionId": "2ad3d26c-2dc1-4b13-92e8-7bc9a0e46df3",
+        "app": "Claude Code",
+        "lastUsed": "2026-04-11T18:06:17.373704300+00:00"
+      }
+    },
+    "lastCodingAgent": "agent_1775433898536_1"
+  }
+}
