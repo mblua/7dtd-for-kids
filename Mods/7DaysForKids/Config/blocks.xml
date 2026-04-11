@@ -1,32 +1,46 @@
 <configs>
 
   <!-- ============================================================ -->
-  <!-- 7 Days For Kids — Gore Block Removal / Replacement           -->
-  <!-- Removes decorative gore blocks (corpses, bones, skulls) and  -->
-  <!-- replaces loot-bearing gore containers with clean models.     -->
+  <!-- 7 Days For Kids — Gore Block Model Replacement               -->
+  <!-- CANNOT use <remove> on blocks that are parents via Extends    -->
+  <!-- (crashes the game). Instead, replace the Model with a         -->
+  <!-- neutral cardboard box. Blocks still exist, Extends chains     -->
+  <!-- stay intact, but visually they are harmless.                  -->
   <!-- ============================================================ -->
 
-  <!-- ======== GORE BLOCKS — DECORATIVE (harvest-only, no loot container) ======== -->
-  <!-- These become air in POIs. Harvest drops (rotting flesh, bone) are lost -->
-  <!-- but these aren't critical gameplay items. -->
+  <!-- ======== GORE BLOCKS — Replace model with cardboard box ======== -->
+  <!-- Only blocks with their own Model property need <set> — children -->
+  <!-- that inherit Model from parent get the change automatically.    -->
 
-  <remove xpath="/blocks/block[@name='goreBlockAnimal']"/>
-  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse']"/>
-  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse1']"/>
-  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse2']"/>
-  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse2Offset']"/>
-  <remove xpath="/blocks/block[@name='goreBlockHumanCorpse3']"/>
-  <remove xpath="/blocks/block[@name='goreBlockHumanBones']"/>
-  <remove xpath="/blocks/block[@name='goreHumanSkull']"/>
+  <!-- goreBlockAnimal: standalone, no children -->
+  <set xpath="/blocks/block[@name='goreBlockAnimal']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
 
-  <!-- ======== HANGING CORPSES — DECORATIVE (harvest-only) ======== -->
-  <!-- 3 variants (Log1, Log2, Log3) x 6 colors = 18 blocks. All become air. -->
+  <!-- goreBlockHumanCorpse: PARENT of Corpse1/2/3. Children override Model so each needs set. -->
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse1']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse2']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <!-- goreBlockHumanCorpse2Offset inherits Model from Corpse2 — no set needed -->
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse3']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
 
-  <remove xpath="/blocks/block[contains(@name,'corpseHangingLog')]"/>
+  <!-- goreBlockHumanBones: PARENT of goreHumanSkull. Both have own Model. -->
+  <set xpath="/blocks/block[@name='goreBlockHumanBones']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='goreHumanSkull']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
 
-  <!-- ======== GORE BATHTUB — LOOT CONTAINER (keep loot, clean up model) ======== -->
-  <!-- cntBathTubGore: change gore bathtub model to clean empty bathtub, -->
-  <!-- remove blood_impact destroy effect, keep Class=Loot and LootList. -->
+  <!-- ======== HANGING CORPSES — Replace model ======== -->
+  <!-- Log1White is PARENT of Log1Brown/Red/Green/Blue/Grey AND Log2White. -->
+  <!-- Log2White is PARENT of Log2Brown/Red/Green/Blue/Grey. -->
+  <!-- Log3White is PARENT of Log3Brown/Red/Green/Blue/Grey. -->
+  <!-- Rope1White is PARENT of Rope1Brown/Red/Green/Blue/Grey. -->
+  <!-- Color children inherit Model from White parent — only White/base needs set. -->
+
+  <set xpath="/blocks/block[@name='corpseHangingLog1White']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='corpseHangingLog2White']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='corpseHangingLog3White']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='corpseHangingRope1White']/property[@name='Model']/@value">@:Entities/Industrial/boxCardboardPrefab.prefab</set>
+
+  <!-- ======== GORE BATHTUB — LOOT CONTAINER (keep loot, clean model) ======== -->
+  <!-- cntBathTubGore is PARENT of cntBathTubsRandomLootHelper. -->
+  <!-- Replace gore model with clean bathtub, remove blood FX. Loot preserved. -->
 
   <set xpath="/blocks/block[@name='cntBathTubGore']/property[@name='Model']/@value">@:Entities/LootContainers/bathTubEmptyPrefab.prefab</set>
   <remove xpath="/blocks/block[@name='cntBathTubGore']/property[@name='Censor']"/>
