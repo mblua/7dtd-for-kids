@@ -6,6 +6,7 @@
     <AssemblyName>7DaysForKids</AssemblyName>
     <RootNamespace>SevenDaysForKids</RootNamespace>
     <OutputType>Library</OutputType>
+    <OutputPath>..\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
     <!-- Game install path — adjust if installed elsewhere -->
@@ -39,6 +40,10 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

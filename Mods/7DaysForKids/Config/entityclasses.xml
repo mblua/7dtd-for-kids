@@ -25,4 +25,10 @@
        Uses contains() instead of starts-with() for confirmed 7DTD XPath compatibility. -->
   <set xpath="/entity_classes/entity_class/property[contains(@name,'DismemberMultiplier')]/@value">0</set>
 
+  <!-- 4. Replace blood-on-hit with stone sparks.
+       SurfaceCategory="organic" causes blood_impact particles when hitting zombies.
+       Changing to "stone" produces spark particles and stone impact sounds instead.
+       Applied to the zombie template — inherited by all zombies. -->
+  <set xpath="/entity_classes/entity_class[@name='zombieTemplateMale']/property[@name='SurfaceCategory']/@value">stone</set>
+
 </configs>
