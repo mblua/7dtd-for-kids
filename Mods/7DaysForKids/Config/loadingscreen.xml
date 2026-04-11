@@ -1,16 +1,13 @@
 <configs>
 
   <!-- ============================================================ -->
-  <!-- 7 Days For Kids — Clean Loading Screens (Option A)          -->
-  <!-- Replaces the 4 vanilla loading screen backgrounds with a    -->
-  <!-- solid black texture from the mod's Resources folder.        -->
-  <!-- If @modfolder: path doesn't work at runtime, fall back to   -->
-  <!-- Option A-bis (remove tex nodes) or Option C (XUi override). -->
+  <!-- 7 Days For Kids — Clean Loading Screens (Option A-bis)      -->
+  <!-- Removes all background texture references so no vanilla      -->
+  <!-- loading screen images are shown.                             -->
+  <!-- Option A (@modfolder: path) failed at runtime — the loading -->
+  <!-- screen system uses Unity Addressables, not filesystem paths. -->
   <!-- ============================================================ -->
 
-  <set xpath="/doc/backgrounds/tex[@file='GUI/loading_screen_1']/@file">@modfolder:Resources/blank_loading</set>
-  <set xpath="/doc/backgrounds/tex[@file='GUI/loading_screen_2']/@file">@modfolder:Resources/blank_loading</set>
-  <set xpath="/doc/backgrounds/tex[@file='GUI/loading_screen_3']/@file">@modfolder:Resources/blank_loading</set>
-  <set xpath="/doc/backgrounds/tex[@file='GUI/loading_screen_4']/@file">@modfolder:Resources/blank_loading</set>
+  <remove xpath="/doc/backgrounds/tex"/>
 
 </configs>
