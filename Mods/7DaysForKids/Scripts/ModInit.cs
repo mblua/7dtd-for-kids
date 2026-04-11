@@ -1,23 +1,44 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
 namespace SevenDaysForKids
 {
-    /// <summary>
-    /// Mod entry point. 7DTD auto-discovers IModApi implementations in mod DLLs.
-    /// Harmony patches are applied here on game init.
-    /// </summary>
     public class ModInit : IModApi
     {
+        private const string TAG = "[7DaysForKids] ";
+
         public void InitMod(Mod _modInstance)
         {
-            Debug.Log("[7DaysForKids] Mod loading — v" + Assembly.GetExecutingAssembly().GetName().Version);
+            Debug.LogWarning(TAG + "Mod loading — v" + Assembly.GetExecutingAssembly().GetName().Version);
 
-            var harmony = new Harmony("com.mblua.7daysforkids");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            // Verify the target method exists before patching
+            var postInit = typeof(EModelStandard).GetMethod("PostInit",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (postInit != null)
+                Debug.LogWarning(TAG + "EModelStandard.PostInit() found: " + postInit);
+            else
+                Debug.LogError(TAG + "EModelStandard.PostInit() NOT FOUND — color patch will not work!");
 
-            Debug.Log("[7DaysForKids] Harmony patches applied");
+            // Check OnOpen for loading screen patch
+            var onOpen = typeof(XUiC_LoadingScreen).GetMethod("OnOpen",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (onOpen != null)
+                Debug.LogWarning(TAG + "XUiC_LoadingScreen.OnOpen() found: " + onOpen);
+            else
+                Debug.LogError(TAG + "XUiC_LoadingScreen.OnOpen() NOT FOUND!");
+
+            try
+            {
+                var harmony = new Harmony("com.mblua.7daysforkids");
+                harmony.PatchAll(Assembly.GetExecutingAssembly());
+                Debug.LogWarning(TAG + "All Harmony patches applied OK");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(TAG + "PatchAll FAILED: " + ex);
+            }
         }
     }
 }

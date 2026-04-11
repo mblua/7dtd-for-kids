@@ -56,6 +56,8 @@ namespace SevenDaysForKids
         // Variant suffixes — checked longest-first to avoid "Feral" matching before "Infernal"
         private static readonly string[] Variants = { "Infernal", "Radiated", "Charged", "Feral" };
 
+        private static bool _loggedFirstHit;
+
         static void Postfix(EModelStandard __instance)
         {
             Entity entity = __instance.entity;
@@ -67,6 +69,12 @@ namespace SevenDaysForKids
                 return;
 
             string className = ec.entityClassName;
+
+            if (!_loggedFirstHit)
+            {
+                _loggedFirstHit = true;
+                Debug.LogWarning("[7DaysForKids] Color patch fired for: " + className);
+            }
 
             // Parse base name and variant
             string baseName = className;
