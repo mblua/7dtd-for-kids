@@ -46,6 +46,10 @@
       <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="NGUI">
+      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\NGUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>
