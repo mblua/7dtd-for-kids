@@ -66,6 +66,7 @@ namespace SevenDaysForKids
 
             var script = modelT.gameObject.GetOrAddComponent<ZombieColorScript>();
             script.EntityClassName = className;
+            script.OwnerEntity = entity;
             script.ResetAndApply(finalColor);
 
             if (!_loggedFirstHit)
@@ -87,6 +88,7 @@ namespace SevenDaysForKids
     {
         public Color TargetColor;
         public string EntityClassName;
+        public Entity OwnerEntity;
 
         private bool _applied;
         private int _safetyFrames = 5;
@@ -202,9 +204,11 @@ namespace SevenDaysForKids
         /// </summary>
         private void DisableOriginalRenderers()
         {
-            // Search from root to catch ALL renderers on the entity,
-            // not just children of the model transform
-            Transform searchRoot = transform.root ?? transform;
+            // Search from the Entity's transform to catch all renderers
+            // belonging to THIS zombie (siblings of model transform).
+            // DO NOT use transform.root — that's the scene root and would
+            // disable renderers on ALL entities.
+            Transform searchRoot = (OwnerEntity != null) ? OwnerEntity.transform : transform;
             Renderer[] renderers = searchRoot.GetComponentsInChildren<Renderer>(true);
             foreach (Renderer renderer in renderers)
             {
