@@ -1,20 +1,85 @@
+using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
 namespace SevenDaysForKids
 {
-    /// <summary>
-    /// Harmony Postfix on EModelBase.Init().
-    /// After the model is initialized, replaces all materials with a solid
-    /// color based on zombie type. Uses EModelBase (not EModelStandard)
-    /// following the pattern from SphereII production mods.
-    /// </summary>
+    // ================================================================
+    // Harmony Postfix — attaches ZombieColorScript MonoBehaviour only.
+    // Zero material work here. The MonoBehaviour handles color via
+    // coroutine delay (waits for game to finalize materials) + LateUpdate
+    // safety re-application. Pattern from SphereII AddScriptToTransform.
+    // ================================================================
+
     [HarmonyPatch(typeof(EModelBase), "Init")]
     public static class ZombieSolidColorPatch
     {
-        // 36 base zombie types → solid color (keyed by game entityClassName)
-        private static readonly Dictionary<string, Color> ColorMap = new Dictionary<string, Color>
+        private static readonly string[] Variants = { "Infernal", "Radiated", "Charged", "Feral" };
+        private static bool _loggedFirstHit;
+
+        static void Postfix(EModelBase __instance)
+        {
+            Entity entity = __instance.entity;
+            if (entity == null || !(entity is EntityZombie))
+                return;
+
+            Transform modelT = __instance.GetModelTransform();
+            if (modelT == null)
+                return;
+
+            EntityClass ec = EntityClass.list[entity.entityClass];
+            if (ec == null)
+                return;
+
+            string className = ec.entityClassName;
+
+            // Parse base name and variant
+            string baseName = className;
+            string variant = "";
+            foreach (string v in Variants)
+            {
+                if (className.EndsWith(v))
+                {
+                    baseName = className.Substring(0, className.Length - v.Length);
+                    variant = v;
+                    break;
+                }
+            }
+
+            if (!ZombieColorScript.ColorMap.TryGetValue(baseName, out Color baseColor))
+                return;
+
+            Color finalColor = ZombieColorScript.ApplyVariant(baseColor, variant);
+
+            // Attach or update the MonoBehaviour
+            var script = modelT.gameObject.GetOrAddComponent<ZombieColorScript>();
+            script.TargetColor = finalColor;
+
+            if (!_loggedFirstHit)
+            {
+                _loggedFirstHit = true;
+                Log.Out("[7DaysForKids] Color script attached to: " + className + " → " + finalColor);
+            }
+        }
+    }
+
+    // ================================================================
+    // ZombieColorScript — MonoBehaviour attached to zombie model transform.
+    // Uses coroutine delay (3 frames) to let the game finalize materials,
+    // then applies solid color. LateUpdate re-applies for 5 frames as
+    // safety net against late material overwrites, then self-disables.
+    // ================================================================
+
+    public class ZombieColorScript : MonoBehaviour
+    {
+        public Color TargetColor;
+
+        private bool _applied;
+        private int _safetyFrames = 5;
+
+        // 36 base zombie types → solid color
+        public static readonly Dictionary<string, Color> ColorMap = new Dictionary<string, Color>
         {
             { "zombieArlene",         HexColor("4A90D9") },  // Blue
             { "zombieBiker",          HexColor("D94A4A") },  // Red
@@ -54,78 +119,53 @@ namespace SevenDaysForKids
             { "zombieYo",             HexColor("FF7F50") },  // Coral
         };
 
-        // Variant suffixes — checked longest-first to avoid "Feral" matching before "Infernal"
-        private static readonly string[] Variants = { "Infernal", "Radiated", "Charged", "Feral" };
+        // Texture cache — shared across all zombies, keyed by color
+        private static readonly Dictionary<Color, Texture2D> TexCache = new Dictionary<Color, Texture2D>();
 
-        private static bool _loggedFirstHit;
+        private static readonly string[] TexturesToClear = {
+            "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
+            "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
+            "_EmissionMap", "_DetailMask", "_SpecGlossMap"
+        };
 
-        static void Postfix(EModelBase __instance)
+        void Start()
         {
-            Entity entity = __instance.entity;
-            if (entity == null || !(entity is EntityZombie))
-                return;
-
-            // Ensure model transform is ready
-            if (__instance.GetModelTransform() == null)
-                return;
-
-            EntityClass ec = EntityClass.list[entity.entityClass];
-            if (ec == null)
-                return;
-
-            string className = ec.entityClassName;
-
-            if (!_loggedFirstHit)
-            {
-                _loggedFirstHit = true;
-                Log.Out("[7DaysForKids] Color patch fired for: " + className);
-            }
-
-            // Parse base name and variant
-            string baseName = className;
-            string variant = "";
-            foreach (string v in Variants)
-            {
-                if (className.EndsWith(v))
-                {
-                    baseName = className.Substring(0, className.Length - v.Length);
-                    variant = v;
-                    break;
-                }
-            }
-
-            if (!ColorMap.TryGetValue(baseName, out Color baseColor))
-                return;
-
-            Color finalColor = ApplyVariant(baseColor, variant);
-            ApplySolidColor(__instance, finalColor);
+            StartCoroutine(ApplyColorDelayed());
         }
 
-        // Cache colored textures per base color to avoid creating duplicates
-        private static readonly Dictionary<Color, Texture2D> _texCache = new Dictionary<Color, Texture2D>();
-
-        private static Texture2D GetColorTexture(Color color)
+        IEnumerator ApplyColorDelayed()
         {
-            if (_texCache.TryGetValue(color, out Texture2D cached))
-                return cached;
+            // Wait 3 frames for the game to finalize model materials,
+            // AltMats, skin textures, censor mode, etc.
+            yield return null;
+            yield return null;
+            yield return null;
 
-            // Create a small solid-color texture (4x4 for filtering)
-            Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
-            Color[] pixels = new Color[16];
-            for (int i = 0; i < 16; i++)
-                pixels[i] = color;
-            tex.SetPixels(pixels);
-            tex.Apply();
-            Object.DontDestroyOnLoad(tex);
-
-            _texCache[color] = tex;
-            return tex;
+            ApplyColor();
+            _applied = true;
         }
 
-        private static void ApplySolidColor(EModelBase model, Color color)
+        void LateUpdate()
         {
-            Texture2D colorTex = GetColorTexture(color);
-            Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
+            if (!_applied)
+                return;
+
+            if (_safetyFrames > 0)
+            {
+                _safetyFrames--;
+                ApplyColor();
+            }
+            else
+            {
+                // All safety re-applications done — stop for performance
+                enabled = false;
+            }
+        }
+
+        private void ApplyColor()
+        {
+            Texture2D colorTex = GetColorTexture(TargetColor);
+            Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
 
             foreach (Renderer renderer in renderers)
             {
@@ -137,42 +177,48 @@ namespace SevenDaysForKids
                 {
                     Material mat = mats[i];
 
-                    // Replace diffuse texture with our solid-color texture
                     if (mat.HasProperty("_MainTex"))
                         mat.SetTexture("_MainTex", colorTex);
-
-                    // Set color property to match
                     if (mat.HasProperty("_Color"))
-                        mat.SetColor("_Color", color);
+                        mat.SetColor("_Color", TargetColor);
 
-                    // Nuke all secondary textures that could show through
-                    string[] texturesToClear = {
-                        "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
-                        "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
-                        "_EmissionMap", "_DetailMask", "_SpecGlossMap"
-                    };
-                    foreach (string texName in texturesToClear)
+                    foreach (string texName in TexturesToClear)
                     {
                         if (mat.HasProperty(texName))
                             mat.SetTexture(texName, null);
                     }
 
-                    // Force matte flat finish
                     if (mat.HasProperty("_Metallic"))
                         mat.SetFloat("_Metallic", 0f);
                     if (mat.HasProperty("_Glossiness"))
                         mat.SetFloat("_Glossiness", 0f);
 
-                    // Add emission to reinforce color visibility
                     mat.EnableKeyword("_EMISSION");
                     if (mat.HasProperty("_EmissionColor"))
-                        mat.SetColor("_EmissionColor", color * 0.3f);
+                        mat.SetColor("_EmissionColor", TargetColor * 0.3f);
                 }
                 renderer.materials = mats;
             }
         }
 
-        private static Color ApplyVariant(Color c, string variant)
+        private static Texture2D GetColorTexture(Color color)
+        {
+            if (TexCache.TryGetValue(color, out Texture2D cached))
+                return cached;
+
+            Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            Color[] pixels = new Color[16];
+            for (int i = 0; i < 16; i++)
+                pixels[i] = color;
+            tex.SetPixels(pixels);
+            tex.Apply();
+            Object.DontDestroyOnLoad(tex);
+
+            TexCache[color] = tex;
+            return tex;
+        }
+
+        public static Color ApplyVariant(Color c, string variant)
         {
             switch (variant)
             {
