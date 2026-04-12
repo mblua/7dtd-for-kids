@@ -52,9 +52,11 @@ namespace SevenDaysForKids
 
             Color finalColor = ZombieColorScript.ApplyVariant(baseColor, variant);
 
-            // Attach or update the MonoBehaviour
+            // Attach or re-initialize the MonoBehaviour.
+            // ResetAndApply handles re-init if the script already exists but is disabled
+            // (LOD swap, SwitchModelAndView, entity pool recycling).
             var script = modelT.gameObject.GetOrAddComponent<ZombieColorScript>();
-            script.TargetColor = finalColor;
+            script.ResetAndApply(finalColor);
 
             if (!_loggedFirstHit)
             {
@@ -77,6 +79,21 @@ namespace SevenDaysForKids
 
         private bool _applied;
         private int _safetyFrames = 5;
+
+        /// <summary>
+        /// Re-initializes the script for a new color application.
+        /// Handles re-init when GetOrAddComponent returns an existing disabled script
+        /// (LOD swap, SwitchModelAndView, entity pool recycling).
+        /// </summary>
+        public void ResetAndApply(Color color)
+        {
+            TargetColor = color;
+            StopAllCoroutines();
+            _applied = false;
+            _safetyFrames = 5;
+            enabled = true;
+            StartCoroutine(ApplyColorDelayed());
+        }
 
         // 36 base zombie types → solid color
         public static readonly Dictionary<string, Color> ColorMap = new Dictionary<string, Color>
@@ -110,7 +127,7 @@ namespace SevenDaysForKids
             { "zombieScreamer",       HexColor("C0C0C0") },  // Silver
             { "zombieSkateboarder",   HexColor("00CED1") },  // Cyan
             { "zombieSoldier",        HexColor("BDB76B") },  // Khaki
-            { "zombieSpider",         HexColor("333333") },  // Black
+            { "zombieSpider",         HexColor("555577") },  // Dark blue-gray
             { "zombieSteve",          HexColor("DAA520") },  // Golden
             { "zombieSteveCrawler",   HexColor("CD7F32") },  // Bronze
             { "zombieTomClark",       HexColor("FA8072") },  // Salmon
@@ -195,7 +212,7 @@ namespace SevenDaysForKids
 
                     mat.EnableKeyword("_EMISSION");
                     if (mat.HasProperty("_EmissionColor"))
-                        mat.SetColor("_EmissionColor", TargetColor * 0.3f);
+                        mat.SetColor("_EmissionColor", new Color(TargetColor.r * 0.3f, TargetColor.g * 0.3f, TargetColor.b * 0.3f, 1f));
                 }
                 renderer.materials = mats;
             }
