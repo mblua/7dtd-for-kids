@@ -50,6 +50,10 @@
       <HintPath>$(GameDir)\7DaysToDie_Data\Managed\NGUI.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="LogLibrary">
+      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\LogLibrary.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>

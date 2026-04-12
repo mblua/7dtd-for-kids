@@ -5,11 +5,12 @@ using UnityEngine;
 namespace SevenDaysForKids
 {
     /// <summary>
-    /// Harmony Postfix on EModelStandard.PostInit().
-    /// After the zombie model is created and renderers exist,
-    /// replaces all materials with a solid color based on zombie type.
+    /// Harmony Postfix on EModelBase.Init().
+    /// After the model is initialized, replaces all materials with a solid
+    /// color based on zombie type. Uses EModelBase (not EModelStandard)
+    /// following the pattern from SphereII production mods.
     /// </summary>
-    [HarmonyPatch(typeof(EModelStandard), "PostInit")]
+    [HarmonyPatch(typeof(EModelBase), "Init")]
     public static class ZombieSolidColorPatch
     {
         // 36 base zombie types → solid color (keyed by game entityClassName)
@@ -58,10 +59,14 @@ namespace SevenDaysForKids
 
         private static bool _loggedFirstHit;
 
-        static void Postfix(EModelStandard __instance)
+        static void Postfix(EModelBase __instance)
         {
             Entity entity = __instance.entity;
             if (entity == null || !(entity is EntityZombie))
+                return;
+
+            // Ensure model transform is ready
+            if (__instance.GetModelTransform() == null)
                 return;
 
             EntityClass ec = EntityClass.list[entity.entityClass];
@@ -73,7 +78,7 @@ namespace SevenDaysForKids
             if (!_loggedFirstHit)
             {
                 _loggedFirstHit = true;
-                Debug.LogWarning("[7DaysForKids] Color patch fired for: " + className);
+                Log.Out("[7DaysForKids] Color patch fired for: " + className);
             }
 
             // Parse base name and variant
@@ -93,14 +98,14 @@ namespace SevenDaysForKids
                 return;
 
             Color finalColor = ApplyVariant(baseColor, variant);
-            ApplySolidColor(entity, finalColor);
+            ApplySolidColor(__instance, finalColor);
         }
 
         // Cached unlit shader — looked up once on first use
         private static Shader _unlitShader;
         private static bool _shaderLookedUp;
 
-        private static void ApplySolidColor(Entity entity, Color color)
+        private static void ApplySolidColor(EModelBase model, Color color)
         {
             // Look up Unlit/Color shader once
             if (!_shaderLookedUp)
@@ -109,9 +114,11 @@ namespace SevenDaysForKids
                 if (_unlitShader == null)
                     _unlitShader = Shader.Find("Hidden/InternalColoredString");
                 _shaderLookedUp = true;
+                Log.Out("[7DaysForKids] Unlit shader: " + (_unlitShader != null ? _unlitShader.name : "NOT FOUND, using fallback"));
             }
 
-            Renderer[] renderers = entity.GetComponentsInChildren<Renderer>(true);
+            // Get renderers from the model instance, not the entity
+            Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
 
             foreach (Renderer renderer in renderers)
             {
@@ -125,13 +132,11 @@ namespace SevenDaysForKids
 
                     if (_unlitShader != null)
                     {
-                        // Primary: replace shader entirely — guarantees pure solid color
                         mat.shader = _unlitShader;
                         mat.color = color;
                     }
                     else
                     {
-                        // Fallback: aggressively override Standard shader properties
                         ForceSolidColorStandard(mat, color);
                     }
                 }
@@ -141,15 +146,11 @@ namespace SevenDaysForKids
 
         private static void ForceSolidColorStandard(Material mat, Color color)
         {
-            // Set color on every known color property
             if (mat.HasProperty("_Color"))
                 mat.SetColor("_Color", color);
-
-            // Replace main texture with white 1x1 so color shows through
             if (mat.HasProperty("_MainTex"))
                 mat.SetTexture("_MainTex", Texture2D.whiteTexture);
 
-            // Nuke ALL texture maps that could override the solid look
             string[] texturesToClear = {
                 "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
                 "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
@@ -161,15 +162,11 @@ namespace SevenDaysForKids
                     mat.SetTexture(texName, null);
             }
 
-            // Force matte flat finish
             if (mat.HasProperty("_Metallic"))
                 mat.SetFloat("_Metallic", 0f);
             if (mat.HasProperty("_Glossiness"))
                 mat.SetFloat("_Glossiness", 0f);
-            if (mat.HasProperty("_SmoothnessTextureChannel"))
-                mat.SetFloat("_SmoothnessTextureChannel", 0f);
 
-            // Add subtle emission to reinforce the color
             mat.EnableKeyword("_EMISSION");
             if (mat.HasProperty("_EmissionColor"))
                 mat.SetColor("_EmissionColor", color * 0.3f);
@@ -179,21 +176,21 @@ namespace SevenDaysForKids
         {
             switch (variant)
             {
-                case "Charged":  // Brighter (+30%)
+                case "Charged":
                     return new Color(
                         Mathf.Min(c.r * 1.3f, 1f),
                         Mathf.Min(c.g * 1.3f, 1f),
                         Mathf.Min(c.b * 1.3f, 1f));
-                case "Feral":  // More saturated
+                case "Feral":
                     float max = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
                     if (max < 0.01f) return c;
                     return new Color(
                         Mathf.Clamp01(c.r + (c.r / max - 0.5f) * 0.3f),
                         Mathf.Clamp01(c.g + (c.g / max - 0.5f) * 0.3f),
                         Mathf.Clamp01(c.b + (c.b / max - 0.5f) * 0.3f));
-                case "Infernal":  // Darker (-30%)
+                case "Infernal":
                     return new Color(c.r * 0.7f, c.g * 0.7f, c.b * 0.7f);
-                case "Radiated":  // Green tint
+                case "Radiated":
                     return new Color(
                         c.r * 0.7f,
                         Mathf.Min(c.g * 1.2f, 1f),

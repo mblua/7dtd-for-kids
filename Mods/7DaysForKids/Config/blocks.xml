@@ -2,35 +2,33 @@
 
   <!-- ============================================================ -->
   <!-- 7 Days For Kids — Gore Block Replacement                     -->
-  <!-- CANNOT <remove> blocks that are parents via Extends.          -->
-  <!-- Instead: make decorative gore invisible, replace loot         -->
-  <!-- containers with clean models.                                -->
-  <!-- Shape="Invisible" makes the block not render (like air)       -->
-  <!-- while keeping the block definition alive for Extends chains.  -->
+  <!-- Replace gore models with rubble/debris. Cannot <remove>       -->
+  <!-- blocks that are Extends parents — children would crash.      -->
   <!-- ============================================================ -->
 
-  <!-- ======== GORE BLOCKS — Make invisible (decorative, no loot) ======== -->
+  <!-- ======== GORE BLOCKS — Replace with rubble pile ======== -->
 
   <!-- goreBlockAnimal: standalone, no children -->
-  <set xpath="/blocks/block[@name='goreBlockAnimal']/property[@name='Shape']/@value">Invisible</set>
+  <set xpath="/blocks/block[@name='goreBlockAnimal']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
 
-  <!-- goreBlockHumanCorpse: PARENT of Corpse1/2/3 -->
-  <set xpath="/blocks/block[@name='goreBlockHumanCorpse']/property[@name='Shape']/@value">Invisible</set>
-  <!-- Children override Shape via Extends — set each that has own Shape or inherits ModelEntity -->
-  <set xpath="/blocks/block[@name='goreBlockHumanCorpse1']/property[@name='Model']/@value"></set>
-  <set xpath="/blocks/block[@name='goreBlockHumanCorpse2']/property[@name='Model']/@value"></set>
-  <set xpath="/blocks/block[@name='goreBlockHumanCorpse3']/property[@name='Model']/@value"></set>
+  <!-- goreBlockHumanCorpse: PARENT of Corpse1/2/3 (children override Model) -->
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse1']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse2']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
+  <!-- goreBlockHumanCorpse2Offset inherits from Corpse2 — no set needed -->
+  <set xpath="/blocks/block[@name='goreBlockHumanCorpse3']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
 
   <!-- goreBlockHumanBones: PARENT of goreHumanSkull -->
-  <set xpath="/blocks/block[@name='goreBlockHumanBones']/property[@name='Shape']/@value">Invisible</set>
+  <set xpath="/blocks/block[@name='goreBlockHumanBones']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
+  <set xpath="/blocks/block[@name='goreHumanSkull']/property[@name='Model']/@value">@:Entities/Debris/rubblePileBricksPrefab.prefab</set>
 
-  <!-- ======== HANGING CORPSES — Make invisible ======== -->
-  <!-- White parents define Shape+Model. Children inherit. -->
+  <!-- ======== HANGING CORPSES — Replace with rubbish decal ======== -->
+  <!-- White parents define Model. Color children inherit from parent. -->
 
-  <set xpath="/blocks/block[@name='corpseHangingLog1White']/property[@name='Shape']/@value">Invisible</set>
-  <set xpath="/blocks/block[@name='corpseHangingLog2White']/property[@name='Shape']/@value">Invisible</set>
-  <set xpath="/blocks/block[@name='corpseHangingLog3White']/property[@name='Shape']/@value">Invisible</set>
-  <set xpath="/blocks/block[@name='corpseHangingRope1White']/property[@name='Shape']/@value">Invisible</set>
+  <set xpath="/blocks/block[@name='corpseHangingLog1White']/property[@name='Model']/@value">@:Entities/Debris/groundDecalRubbish01Prefab.prefab</set>
+  <set xpath="/blocks/block[@name='corpseHangingLog2White']/property[@name='Model']/@value">@:Entities/Debris/groundDecalRubbish01Prefab.prefab</set>
+  <set xpath="/blocks/block[@name='corpseHangingLog3White']/property[@name='Model']/@value">@:Entities/Debris/groundDecalRubbish01Prefab.prefab</set>
+  <set xpath="/blocks/block[@name='corpseHangingRope1White']/property[@name='Model']/@value">@:Entities/Debris/groundDecalRubbish01Prefab.prefab</set>
 
   <!-- ======== GORE BATHTUB — LOOT CONTAINER (keep loot, clean model) ======== -->
   <!-- cntBathTubGore is PARENT of cntBathTubsRandomLootHelper. -->
