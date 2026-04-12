@@ -1,0 +1,13 @@
+<configs>
+
+  <!-- ============================================================ -->
+  <!-- 7 Days For Kids — Clean Loading Screens (Option A-bis)      -->
+  <!-- Removes all background texture references so no vanilla      -->
+  <!-- loading screen images are shown.                             -->
+  <!-- Option A (@modfolder: path) failed at runtime — the loading -->
+  <!-- screen system uses Unity Addressables, not filesystem paths. -->
+  <!-- ============================================================ -->
+
+  <remove xpath="/doc/backgrounds/tex"/>
+
+</configs>

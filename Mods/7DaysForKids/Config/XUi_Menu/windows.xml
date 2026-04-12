@@ -1,0 +1,17 @@
+<configs>
+
+  <!-- ============================================================ -->
+  <!-- 7 Days For Kids — Loading Screen Cover (Option C)           -->
+  <!-- Moves the existing pnlBlack panel ABOVE the loading image.  -->
+  <!-- Vanilla: pnlBlack depth=1, loading_image depth=2 (image     -->
+  <!--   renders on top of black panel, showing scary images).     -->
+  <!-- Override: pnlBlack depth=3 (black panel covers the image).  -->
+  <!-- The gradient bar (depth=4) and tips text (depth=6) still    -->
+  <!-- render above the black panel, so tips remain visible.       -->
+  <!-- This is a safety net — works even if loadingscreen.xml      -->
+  <!-- Option A-bis fails or the game has a fallback texture.      -->
+  <!-- ============================================================ -->
+
+  <set xpath="/windows/window[@name='loadingScreen']/panel[@name='pnlBlack']/@depth">3</set>
+
+</configs>

@@ -1,0 +1,34 @@
+<configs>
+
+  <!-- ============================================================ -->
+  <!-- 7 Days For Kids — Gore Visual Removal                       -->
+  <!-- Removes blood death particles, dismemberment tags, and       -->
+  <!-- dismemberment multipliers from ALL entity classes.           -->
+  <!-- ============================================================ -->
+
+  <!-- 1. Remove blood splatter on death — removes the entire property node.
+       Targets ONLY blood_death value, preserving supply_crate_gib_Prefab on supply crates.
+       Affects: playerMale, zombieTemplateMale (inherited by all zombies),
+       animalTemplateTimid, animalDoe, animalTemplateHostile, NPC entities. -->
+  <remove xpath="/entity_classes/entity_class/property[@name='ParticleOnDeath'][@value='blood_death']"/>
+
+  <!-- 2. Remove ALL dismemberment gore tags (~323 properties).
+       Covers zombie templates, individual zombie overrides, and animal entities.
+       Without these tags, no limb separation or gore prefabs spawn on hit/death.
+       Uses contains() instead of starts-with() for confirmed 7DTD XPath compatibility. -->
+  <remove xpath="/entity_classes/entity_class/property[contains(@name,'DismemberTag')]"/>
+
+  <!-- 3. Belt-and-suspenders: set ALL dismemberment multipliers to 0 (~83 properties).
+       Covers template (1/1/1), Feral overrides (.7), and Radiated overrides (.4).
+       Redundant with tag removal but prevents edge cases where engine checks
+       multiplier without verifying tag existence.
+       Uses contains() instead of starts-with() for confirmed 7DTD XPath compatibility. -->
+  <set xpath="/entity_classes/entity_class/property[contains(@name,'DismemberMultiplier')]/@value">0</set>
+
+  <!-- 4. Replace blood-on-hit with stone sparks.
+       SurfaceCategory="organic" causes blood_impact particles when hitting zombies.
+       Changing to "stone" produces spark particles and stone impact sounds instead.
+       Applied to the zombie template — inherited by all zombies. -->
+  <set xpath="/entity_classes/entity_class[@name='zombieTemplateMale']/property[@name='SurfaceCategory']/@value">stone</set>
+
+</configs>
