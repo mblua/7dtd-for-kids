@@ -259,11 +259,13 @@ namespace SevenDaysForKids
                 _primitiveObj.transform.localScale = new Vector3(0.8f, 0.95f, 0.5f);
             }
 
-            // 4. Keep the CapsuleCollider for player raycast targeting.
-            // Set layer to match the model so raycasts detect it.
-            // Original Entity.physicsCapsuleCollider handles AI/physics
-            // separately (lives on Entity transform, not model transform).
-            _primitiveObj.layer = gameObject.layer;
+            // 4. Remove collider — capsule is purely visual.
+            // Zombie's original Entity.physicsCapsuleCollider handles all
+            // hit detection and physics. Our collider was blocking arrows
+            // without routing damage to the zombie.
+            Collider col = _primitiveObj.GetComponent<Collider>();
+            if (col != null)
+                Object.Destroy(col);
 
             // 5. Set up material with solid color
             Renderer capsuleRenderer = _primitiveObj.GetComponent<Renderer>();
