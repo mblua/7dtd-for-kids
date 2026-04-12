@@ -18,8 +18,24 @@ namespace SevenDaysForKids
         static void Postfix(EModelBase __instance)
         {
             Entity entity = __instance.entity;
-            if (entity == null || !(entity is EntityZombie))
+            if (entity == null)
                 return;
+
+            // Guard: zombies always, animals only if zombie-type
+            if (entity is EntityZombie)
+            {
+                // proceed
+            }
+            else if (entity is EntityAnimal)
+            {
+                EntityClass check = EntityClass.list[entity.entityClass];
+                if (check == null || !check.entityClassName.StartsWith("animalZombie"))
+                    return;
+            }
+            else
+            {
+                return;
+            }
 
             Transform modelT = __instance.GetModelTransform();
             if (modelT == null)
@@ -49,6 +65,7 @@ namespace SevenDaysForKids
             Color finalColor = ZombieColorScript.ApplyVariant(baseColor, variant);
 
             var script = modelT.gameObject.GetOrAddComponent<ZombieColorScript>();
+            script.EntityClassName = className;
             script.ResetAndApply(finalColor);
 
             if (!_loggedFirstHit)
@@ -69,6 +86,7 @@ namespace SevenDaysForKids
     public class ZombieColorScript : MonoBehaviour
     {
         public Color TargetColor;
+        public string EntityClassName;
 
         private bool _applied;
         private int _safetyFrames = 5;
@@ -80,6 +98,7 @@ namespace SevenDaysForKids
             StopAllCoroutines();
             _applied = false;
             _safetyFrames = 5;
+            _frameCount = 0;
             enabled = true;
 
             // Destroy old primitive if re-initializing
@@ -131,6 +150,10 @@ namespace SevenDaysForKids
             { "zombieUtilityWorker",  HexColor("FFBF00") },  // Amber
             { "zombieWight",          HexColor("4B0082") },  // Indigo
             { "zombieYo",             HexColor("FF7F50") },  // Coral
+            // Zombie animals
+            { "animalZombieBear",     HexColor("8B4513") },  // Saddle brown
+            { "animalZombieDog",      HexColor("708090") },  // Slate gray
+            { "animalZombieVulture",  HexColor("2F4F4F") },  // Dark slate
         };
 
         void Start()
@@ -148,35 +171,55 @@ namespace SevenDaysForKids
             _applied = true;
         }
 
+        private int _frameCount;
+
         void LateUpdate()
         {
             if (!_applied)
                 return;
 
+            _frameCount++;
+
             if (_safetyFrames > 0)
             {
+                // Initial safety: re-apply every frame for 5 frames
                 _safetyFrames--;
                 ApplyColor();
             }
-            else
+            else if (_frameCount % 30 == 0)
             {
-                enabled = false;
+                // Slow poll: re-disable renderers the game may re-enable
+                // (ragdoll/death, LOD swap, model reload).
+                // Every ~0.5s at 60fps — negligible performance cost.
+                DisableOriginalRenderers();
+            }
+        }
+
+        /// <summary>
+        /// Disables all original renderers on the entity. Searches from
+        /// transform.root to catch renderers that are siblings/parents of
+        /// the model transform (some body parts live outside the model tree).
+        /// </summary>
+        private void DisableOriginalRenderers()
+        {
+            // Search from root to catch ALL renderers on the entity,
+            // not just children of the model transform
+            Transform searchRoot = transform.root ?? transform;
+            Renderer[] renderers = searchRoot.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer is ParticleSystemRenderer)
+                    continue;
+                if (_primitiveObj != null && renderer.gameObject == _primitiveObj)
+                    continue;
+                renderer.enabled = false;
             }
         }
 
         private void ApplyColor()
         {
-            // 1. Disable all original renderers (skip particles and our own primitive)
-            Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
-            foreach (Renderer renderer in renderers)
-            {
-                if (renderer is ParticleSystemRenderer)
-                    continue;
-                // Skip our own capsule's renderer
-                if (_primitiveObj != null && renderer.gameObject == _primitiveObj)
-                    continue;
-                renderer.enabled = false;
-            }
+            // 1. Disable all original renderers
+            DisableOriginalRenderers();
 
             // 2. If primitive already exists, ensure it's active and return
             if (_primitiveObj != null)
@@ -185,17 +228,38 @@ namespace SevenDaysForKids
                 return;
             }
 
-            // 3. Create capsule primitive
+            // 3. Create capsule primitive — scale varies by entity type
             _primitiveObj = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             _primitiveObj.name = "7DFK_ColorCapsule";
             _primitiveObj.transform.SetParent(transform, false);
-            _primitiveObj.transform.localPosition = Vector3.up * 0.9f;
-            _primitiveObj.transform.localScale = new Vector3(0.6f, 0.9f, 0.6f);
 
-            // 4. Remove the collider — zombie already has its own
-            Collider col = _primitiveObj.GetComponent<Collider>();
-            if (col != null)
-                Object.Destroy(col);
+            if (EntityClassName != null && EntityClassName.Contains("Bear"))
+            {
+                _primitiveObj.transform.localPosition = Vector3.up * 0.7f;
+                _primitiveObj.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            }
+            else if (EntityClassName != null && EntityClassName.Contains("Dog"))
+            {
+                _primitiveObj.transform.localPosition = Vector3.up * 0.3f;
+                _primitiveObj.transform.localScale = new Vector3(0.4f, 0.4f, 0.6f);
+            }
+            else if (EntityClassName != null && EntityClassName.Contains("Vulture"))
+            {
+                _primitiveObj.transform.localPosition = Vector3.up * 0.3f;
+                _primitiveObj.transform.localScale = new Vector3(0.3f, 0.3f, 0.5f);
+            }
+            else
+            {
+                // Default zombie humanoid — wide enough to cover arms
+                _primitiveObj.transform.localPosition = Vector3.up * 0.9f;
+                _primitiveObj.transform.localScale = new Vector3(0.8f, 0.95f, 0.5f);
+            }
+
+            // 4. Keep the CapsuleCollider for player raycast targeting.
+            // Set layer to match the model so raycasts detect it.
+            // Original Entity.physicsCapsuleCollider handles AI/physics
+            // separately (lives on Entity transform, not model transform).
+            _primitiveObj.layer = gameObject.layer;
 
             // 5. Set up material with solid color
             Renderer capsuleRenderer = _primitiveObj.GetComponent<Renderer>();
