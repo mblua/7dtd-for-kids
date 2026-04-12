@@ -101,23 +101,30 @@ namespace SevenDaysForKids
             ApplySolidColor(__instance, finalColor);
         }
 
-        // Cached unlit shader — looked up once on first use
-        private static Shader _unlitShader;
-        private static bool _shaderLookedUp;
+        // Cache colored textures per base color to avoid creating duplicates
+        private static readonly Dictionary<Color, Texture2D> _texCache = new Dictionary<Color, Texture2D>();
+
+        private static Texture2D GetColorTexture(Color color)
+        {
+            if (_texCache.TryGetValue(color, out Texture2D cached))
+                return cached;
+
+            // Create a small solid-color texture (4x4 for filtering)
+            Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            Color[] pixels = new Color[16];
+            for (int i = 0; i < 16; i++)
+                pixels[i] = color;
+            tex.SetPixels(pixels);
+            tex.Apply();
+            Object.DontDestroyOnLoad(tex);
+
+            _texCache[color] = tex;
+            return tex;
+        }
 
         private static void ApplySolidColor(EModelBase model, Color color)
         {
-            // Look up Unlit/Color shader once
-            if (!_shaderLookedUp)
-            {
-                _unlitShader = Shader.Find("Unlit/Color");
-                if (_unlitShader == null)
-                    _unlitShader = Shader.Find("Hidden/InternalColoredString");
-                _shaderLookedUp = true;
-                Log.Out("[7DaysForKids] Unlit shader: " + (_unlitShader != null ? _unlitShader.name : "NOT FOUND, using fallback"));
-            }
-
-            // Get renderers from the model instance, not the entity
+            Texture2D colorTex = GetColorTexture(color);
             Renderer[] renderers = model.GetComponentsInChildren<Renderer>(true);
 
             foreach (Renderer renderer in renderers)
@@ -130,46 +137,39 @@ namespace SevenDaysForKids
                 {
                     Material mat = mats[i];
 
-                    if (_unlitShader != null)
+                    // Replace diffuse texture with our solid-color texture
+                    if (mat.HasProperty("_MainTex"))
+                        mat.SetTexture("_MainTex", colorTex);
+
+                    // Set color property to match
+                    if (mat.HasProperty("_Color"))
+                        mat.SetColor("_Color", color);
+
+                    // Nuke all secondary textures that could show through
+                    string[] texturesToClear = {
+                        "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
+                        "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
+                        "_EmissionMap", "_DetailMask", "_SpecGlossMap"
+                    };
+                    foreach (string texName in texturesToClear)
                     {
-                        mat.shader = _unlitShader;
-                        mat.color = color;
+                        if (mat.HasProperty(texName))
+                            mat.SetTexture(texName, null);
                     }
-                    else
-                    {
-                        ForceSolidColorStandard(mat, color);
-                    }
+
+                    // Force matte flat finish
+                    if (mat.HasProperty("_Metallic"))
+                        mat.SetFloat("_Metallic", 0f);
+                    if (mat.HasProperty("_Glossiness"))
+                        mat.SetFloat("_Glossiness", 0f);
+
+                    // Add emission to reinforce color visibility
+                    mat.EnableKeyword("_EMISSION");
+                    if (mat.HasProperty("_EmissionColor"))
+                        mat.SetColor("_EmissionColor", color * 0.3f);
                 }
                 renderer.materials = mats;
             }
-        }
-
-        private static void ForceSolidColorStandard(Material mat, Color color)
-        {
-            if (mat.HasProperty("_Color"))
-                mat.SetColor("_Color", color);
-            if (mat.HasProperty("_MainTex"))
-                mat.SetTexture("_MainTex", Texture2D.whiteTexture);
-
-            string[] texturesToClear = {
-                "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
-                "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
-                "_EmissionMap", "_DetailMask", "_SpecGlossMap"
-            };
-            foreach (string texName in texturesToClear)
-            {
-                if (mat.HasProperty(texName))
-                    mat.SetTexture(texName, null);
-            }
-
-            if (mat.HasProperty("_Metallic"))
-                mat.SetFloat("_Metallic", 0f);
-            if (mat.HasProperty("_Glossiness"))
-                mat.SetFloat("_Glossiness", 0f);
-
-            mat.EnableKeyword("_EMISSION");
-            if (mat.HasProperty("_EmissionColor"))
-                mat.SetColor("_EmissionColor", color * 0.3f);
         }
 
         private static Color ApplyVariant(Color c, string variant)
