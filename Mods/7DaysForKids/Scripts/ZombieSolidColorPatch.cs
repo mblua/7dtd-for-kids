@@ -7,9 +7,6 @@ namespace SevenDaysForKids
 {
     // ================================================================
     // Harmony Postfix — attaches ZombieColorScript MonoBehaviour only.
-    // Zero material work here. The MonoBehaviour handles color via
-    // coroutine delay (waits for game to finalize materials) + LateUpdate
-    // safety re-application. Pattern from SphereII AddScriptToTransform.
     // ================================================================
 
     [HarmonyPatch(typeof(EModelBase), "Init")]
@@ -34,7 +31,6 @@ namespace SevenDaysForKids
 
             string className = ec.entityClassName;
 
-            // Parse base name and variant
             string baseName = className;
             string variant = "";
             foreach (string v in Variants)
@@ -52,25 +48,22 @@ namespace SevenDaysForKids
 
             Color finalColor = ZombieColorScript.ApplyVariant(baseColor, variant);
 
-            // Attach or re-initialize the MonoBehaviour.
-            // ResetAndApply handles re-init if the script already exists but is disabled
-            // (LOD swap, SwitchModelAndView, entity pool recycling).
             var script = modelT.gameObject.GetOrAddComponent<ZombieColorScript>();
             script.ResetAndApply(finalColor);
 
             if (!_loggedFirstHit)
             {
                 _loggedFirstHit = true;
-                Log.Out("[7DaysForKids] Color script attached to: " + className + " → " + finalColor);
+                Log.Out("[7DaysForKids] Color capsule attached to: " + className + " color=" + finalColor);
             }
         }
     }
 
     // ================================================================
-    // ZombieColorScript — MonoBehaviour attached to zombie model transform.
-    // Uses coroutine delay (3 frames) to let the game finalize materials,
-    // then applies solid color. LateUpdate re-applies for 5 frames as
-    // safety net against late material overwrites, then self-disables.
+    // ZombieColorScript — disables original renderers and overlays a
+    // solid-color capsule primitive. Material modification doesn't work
+    // because the game's rendering pipeline overwrites materials.
+    // This approach completely bypasses the game's material system.
     // ================================================================
 
     public class ZombieColorScript : MonoBehaviour
@@ -79,12 +72,8 @@ namespace SevenDaysForKids
 
         private bool _applied;
         private int _safetyFrames = 5;
+        private GameObject _primitiveObj;
 
-        /// <summary>
-        /// Re-initializes the script for a new color application.
-        /// Handles re-init when GetOrAddComponent returns an existing disabled script
-        /// (LOD swap, SwitchModelAndView, entity pool recycling).
-        /// </summary>
         public void ResetAndApply(Color color)
         {
             TargetColor = color;
@@ -92,6 +81,14 @@ namespace SevenDaysForKids
             _applied = false;
             _safetyFrames = 5;
             enabled = true;
+
+            // Destroy old primitive if re-initializing
+            if (_primitiveObj != null)
+            {
+                Object.Destroy(_primitiveObj);
+                _primitiveObj = null;
+            }
+
             StartCoroutine(ApplyColorDelayed());
         }
 
@@ -136,15 +133,6 @@ namespace SevenDaysForKids
             { "zombieYo",             HexColor("FF7F50") },  // Coral
         };
 
-        // Texture cache — shared across all zombies, keyed by color
-        private static readonly Dictionary<Color, Texture2D> TexCache = new Dictionary<Color, Texture2D>();
-
-        private static readonly string[] TexturesToClear = {
-            "_BumpMap", "_MetallicGlossMap", "_OcclusionMap",
-            "_DetailAlbedoMap", "_DetailNormalMap", "_ParallaxMap",
-            "_EmissionMap", "_DetailMask", "_SpecGlossMap"
-        };
-
         void Start()
         {
             StartCoroutine(ApplyColorDelayed());
@@ -152,8 +140,6 @@ namespace SevenDaysForKids
 
         IEnumerator ApplyColorDelayed()
         {
-            // Wait 3 frames for the game to finalize model materials,
-            // AltMats, skin textures, censor mode, etc.
             yield return null;
             yield return null;
             yield return null;
@@ -174,65 +160,72 @@ namespace SevenDaysForKids
             }
             else
             {
-                // All safety re-applications done — stop for performance
                 enabled = false;
             }
         }
 
         private void ApplyColor()
         {
-            Texture2D colorTex = GetColorTexture(TargetColor);
+            // 1. Disable all original renderers (skip particles and our own primitive)
             Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
-
             foreach (Renderer renderer in renderers)
             {
                 if (renderer is ParticleSystemRenderer)
                     continue;
-
-                Material[] mats = renderer.materials;
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    Material mat = mats[i];
-
-                    if (mat.HasProperty("_MainTex"))
-                        mat.SetTexture("_MainTex", colorTex);
-                    if (mat.HasProperty("_Color"))
-                        mat.SetColor("_Color", TargetColor);
-
-                    foreach (string texName in TexturesToClear)
-                    {
-                        if (mat.HasProperty(texName))
-                            mat.SetTexture(texName, null);
-                    }
-
-                    if (mat.HasProperty("_Metallic"))
-                        mat.SetFloat("_Metallic", 0f);
-                    if (mat.HasProperty("_Glossiness"))
-                        mat.SetFloat("_Glossiness", 0f);
-
-                    mat.EnableKeyword("_EMISSION");
-                    if (mat.HasProperty("_EmissionColor"))
-                        mat.SetColor("_EmissionColor", new Color(TargetColor.r * 0.3f, TargetColor.g * 0.3f, TargetColor.b * 0.3f, 1f));
-                }
-                renderer.materials = mats;
+                // Skip our own capsule's renderer
+                if (_primitiveObj != null && renderer.gameObject == _primitiveObj)
+                    continue;
+                renderer.enabled = false;
             }
-        }
 
-        private static Texture2D GetColorTexture(Color color)
-        {
-            if (TexCache.TryGetValue(color, out Texture2D cached))
-                return cached;
+            // 2. If primitive already exists, ensure it's active and return
+            if (_primitiveObj != null)
+            {
+                _primitiveObj.SetActive(true);
+                return;
+            }
 
-            Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
-            Color[] pixels = new Color[16];
-            for (int i = 0; i < 16; i++)
-                pixels[i] = color;
-            tex.SetPixels(pixels);
-            tex.Apply();
-            Object.DontDestroyOnLoad(tex);
+            // 3. Create capsule primitive
+            _primitiveObj = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            _primitiveObj.name = "7DFK_ColorCapsule";
+            _primitiveObj.transform.SetParent(transform, false);
+            _primitiveObj.transform.localPosition = Vector3.up * 0.9f;
+            _primitiveObj.transform.localScale = new Vector3(0.6f, 0.9f, 0.6f);
 
-            TexCache[color] = tex;
-            return tex;
+            // 4. Remove the collider — zombie already has its own
+            Collider col = _primitiveObj.GetComponent<Collider>();
+            if (col != null)
+                Object.Destroy(col);
+
+            // 5. Set up material with solid color
+            Renderer capsuleRenderer = _primitiveObj.GetComponent<Renderer>();
+            if (capsuleRenderer != null)
+            {
+                Material mat = new Material(Shader.Find("Standard"));
+                if (mat.shader == null || mat.shader.name == "Hidden/InternalErrorShader")
+                {
+                    // Fallback if Standard shader not available
+                    Shader fallback = Shader.Find("Sprites/Default");
+                    if (fallback != null)
+                        mat = new Material(fallback);
+                }
+
+                mat.color = TargetColor;
+
+                if (mat.HasProperty("_Metallic"))
+                    mat.SetFloat("_Metallic", 0f);
+                if (mat.HasProperty("_Glossiness"))
+                    mat.SetFloat("_Glossiness", 0f);
+
+                mat.EnableKeyword("_EMISSION");
+                if (mat.HasProperty("_EmissionColor"))
+                    mat.SetColor("_EmissionColor", new Color(
+                        TargetColor.r * 0.3f,
+                        TargetColor.g * 0.3f,
+                        TargetColor.b * 0.3f, 1f));
+
+                capsuleRenderer.material = mat;
+            }
         }
 
         public static Color ApplyVariant(Color c, string variant)
