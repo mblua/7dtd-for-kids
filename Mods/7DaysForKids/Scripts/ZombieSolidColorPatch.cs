@@ -21,22 +21,6 @@ namespace SevenDaysForKids
             if (entity == null)
                 return;
 
-            // Guard: zombies always, animals only if zombie-type
-            if (entity is EntityZombie)
-            {
-                // proceed
-            }
-            else if (entity is EntityAnimal)
-            {
-                EntityClass check = EntityClass.list[entity.entityClass];
-                if (check == null || !check.entityClassName.StartsWith("animalZombie"))
-                    return;
-            }
-            else
-            {
-                return;
-            }
-
             Transform modelT = __instance.GetModelTransform();
             if (modelT == null)
                 return;
@@ -46,6 +30,14 @@ namespace SevenDaysForKids
                 return;
 
             string className = ec.entityClassName;
+
+            // Guard: EntityZombie (humanoid zombies) OR any entity whose
+            // className starts with "animalZombie" (zombie dogs, bears,
+            // vultures, boars). Zombie animals use EntityEnemyAnimal,
+            // EntityZombieDog, EntityVulture — none extend EntityAnimal,
+            // so we check by name instead of C# type.
+            if (!(entity is EntityZombie) && !className.StartsWith("animalZombie"))
+                return;
 
             string baseName = className;
             string variant = "";
@@ -152,8 +144,9 @@ namespace SevenDaysForKids
             { "zombieUtilityWorker",  HexColor("FFBF00") },  // Amber
             { "zombieWight",          HexColor("4B0082") },  // Indigo
             { "zombieYo",             HexColor("FF7F50") },  // Coral
-            // Zombie animals
+            // Zombie animals (EntityEnemyAnimal/EntityZombieDog/EntityVulture — NOT EntityAnimal)
             { "animalZombieBear",     HexColor("8B4513") },  // Saddle brown
+            { "animalZombieBoar",     HexColor("556B2F") },  // Dark olive green
             { "animalZombieDog",      HexColor("708090") },  // Slate gray
             { "animalZombieVulture",  HexColor("2F4F4F") },  // Dark slate
         };
@@ -241,6 +234,11 @@ namespace SevenDaysForKids
             {
                 _primitiveObj.transform.localPosition = Vector3.up * 0.7f;
                 _primitiveObj.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            }
+            else if (EntityClassName != null && EntityClassName.Contains("Boar"))
+            {
+                _primitiveObj.transform.localPosition = Vector3.up * 0.5f;
+                _primitiveObj.transform.localScale = new Vector3(0.7f, 0.6f, 0.9f);
             }
             else if (EntityClassName != null && EntityClassName.Contains("Dog"))
             {
