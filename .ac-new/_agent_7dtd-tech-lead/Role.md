@@ -260,3 +260,76 @@ Every decision should be filtered through: **"Is this appropriate for a child?"*
 - Avoid overly broad XPath expressions that could break with game updates.
 - Prefer `set` over `remove` + `append` when modifying existing values — less risk of conflicts.
 - Keep track of all modified nodes in a structured way so updates to new game versions are manageable.
+
+### 10. Always /clear agents before new task assignments
+Before sending a new investigation or implementation task to ANY agent, first send `/clear` to reset their session. Agents may retain stale context from prior conversations that could confuse or contaminate their work.
+
+**Exception:** When continuing an ongoing conversation with an agent about the SAME task (e.g., follow-up questions, requesting clarification on their report), do NOT clear — that context is valuable.
+
+**How to apply:** For each agent receiving a new task: (1) send `/clear`, (2) wait for confirmation, (3) then send the task message.
+
+### 11. Request reports via file when messages get truncated
+AgentsCommander messages have a size limit. When an agent's report gets cut off mid-message, **do NOT ask them to re-send the same message**. Instead, instruct them to write their report to a file in the repo (e.g., `_plans/report-<topic>.md`) and reply with just the file path.
+
+**How to apply:** When sending tasks that may produce long output (investigation reports, design docs, code reviews), proactively instruct the agent: "If your report is long, write it to `_plans/<filename>.md` in the repo and reply with the file path." This prevents truncation and makes reports reviewable via git.
+
+---
+
+## Learned: 7DTD Modding Technical Reference
+
+### Key findings from this project (verified in-game, April 2026)
+
+**ModInfo.xml formato V2 (OBLIGATORIO):**
+- Elementos directamente bajo `<xml>`, SIN wrapper `<ModInfo>`. Formato legacy causa que el juego ignore el mod entero.
+- Referencia: comparar con `Mods/0_TFP_Harmony/ModInfo.xml`
+
+**Logging en mods:**
+- Usar `Log.Out(string)`, `Log.Warning(string)`, `Log.Error(string)` — clase `Log` en `LogLibrary.dll`
+- `Debug.Log()` y `Debug.LogWarning()` de Unity NO aparecen en los logs del juego
+- Logs del juego: `%APPDATA%/7DaysToDie/logs/output_log_client__*.txt` (NO Player.log)
+
+**Harmony patches:**
+- Hook probado para modelos de entidades: `[HarmonyPatch(typeof(EModelBase), "Init")]` Postfix
+- `EModelStandard.PostInit()` NO es el hook correcto (no dispara)
+- Postfix signature: `static void Postfix(EModelBase __instance)` con `__instance.entity` para acceder al Entity
+- `EntityClass.list[entity.entityClass].entityClassName` da el nombre del zombie
+- PatchAll() no tira excepción si un patch no matchea — falla silenciosamente
+
+**XPath en blocks.xml:**
+- NUNCA hacer `<remove>` de bloques que son padres via `Extends` — los hijos crashean: `EXC Could not find Extends block`
+- NUNCA hacer `<set>` con valor vacío — causa: `Setting attribute without any replacement text`
+- Usar `<set>` para cambiar Model a otro prefab en vez de `<remove>`
+
+**Shaders en 7DTD:**
+- `Shader.Find("Unlit/Color")` devuelve NULL — no existe en el build
+- BUG ABIERTO: texturas sólidas via Texture2D + _MainTex no persisten visualmente — el rendering pipeline las overridea
+
+**Loading screens:**
+- Root XML es `<doc>`, no `<loadingscreen>`. Texturas son `<tex file="..."/>` dentro de `<backgrounds>`
+- `@modfolder:` NO funciona para loading screen textures (Unity Addressables)
+- Solución que funciona: `<remove xpath="/doc/backgrounds/tex"/>` + XUi override `pnlBlack` depth 1→3
+
+**Entidades zombie:**
+- 36 tipos base, 155 entidades activas (no 27×5=135 como parece)
+- `zombieWight` base NO EXISTE (empieza en Feral)
+- `zombieSteveCrawler` existe con 2 variantes (Base+Feral)
+- Variantes irregulares: algunos tipos no tienen Infernal, otros no tienen Charged
+
+### Recursos de referencia verificados
+
+**Mods en producción (código fuente, working examples):**
+- SphereII Mods (hooks EModelBase.Init, entity scripts): https://github.com/SphereII/SphereII.Mods
+- OCB PrettyGrass (shader/material replacement): https://github.com/OCB7D2D/OcbPrettyGrass
+- OCB Mod Compiler: https://github.com/OCB7D2D/OcbModCompiler
+- Discord Log Hook (Log.Out API example): https://github.com/jonathan-robertson/7dtd-discord-log-hook
+
+**Documentación:**
+- DMT Harmony Docs: https://7d2dmods.github.io/HarmonyDocs/
+- DMT Scripts: https://7d2dmods.github.io/HarmonyDocs/Scripts.html
+- Harmony Mods Guide: https://7d2dmods.github.io/HarmonyDocs/HarmonyMods1.html
+- Nexus Modding Guide: https://forums.nexusmods.com/topic/13495841-developing-mods-for-7-days-to-die-using-harmony/
+- ModAPI Wiki (Fandom): https://7daystodie.fandom.com/wiki/ModAPI
+- ModAPI Wiki (Official): https://7daystodie.wiki.gg/wiki/ModAPI
+- Mod Structure Wiki: https://7daystodie.fandom.com/wiki/Mod_Structure
+- Modding Resources: https://7daystodie.wiki.gg/wiki/Modding_Resources
+- Mod Troubleshooting: https://www.nexusmods.com/7daystodie/articles/787

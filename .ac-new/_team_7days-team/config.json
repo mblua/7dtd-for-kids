@@ -1,20 +1,22 @@
 {
   "agents": [
-    "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_dev-rust",
-    "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_architect",
-    "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_dev-rust-grinch",
-    "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_tech-lead",
-    "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_shipper"
+    "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-architect",
+    "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-dev-modder",
+    "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-grinch",
+    "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-shipper",
+    "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-tech-lead",
+    "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-dev-modder-codex"
   ],
-  "coordinator": "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_tech-lead",
+  "coordinator": "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-tech-lead",
   "repos": [
     {
       "agents": [
-        "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_architect",
-        "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_dev-rust",
-        "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_dev-rust-grinch",
-        "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_shipper",
-        "C:\\Users\\maria\\0_repos\\agentscommander\\.ac-new\\_agent_tech-lead"
+        "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-architect",
+        "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-dev-modder",
+        "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-grinch",
+        "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-shipper",
+        "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-tech-lead",
+        "C:\\Users\\maria\\0_repos\\7-days-to-die-for-kids\\.ac-new\\_agent_7dtd-dev-modder-codex"
       ],
       "url": "https://github.com/mblua/7-days-to-die-for-kids.git"
     }
