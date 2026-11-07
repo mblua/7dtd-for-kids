@@ -1,17 +1,27 @@
 <configs>
 
   <!-- ============================================================ -->
-  <!-- 7 Days For Kids — Loading Screen Cover (Option C)           -->
-  <!-- Moves the existing pnlBlack panel ABOVE the loading image.  -->
-  <!-- Vanilla: pnlBlack depth=1, loading_image depth=2 (image     -->
-  <!--   renders on top of black panel, showing scary images).     -->
-  <!-- Override: pnlBlack depth=3 (black panel covers the image).  -->
-  <!-- The gradient bar (depth=4) and tips text (depth=6) still    -->
-  <!-- render above the black panel, so tips remain visible.       -->
-  <!-- This is a safety net — works even if loadingscreen.xml      -->
-  <!-- Option A-bis fails or the game has a fallback texture.      -->
+  <!-- 7 Days For Kids — Loading Screen Cover                       -->
+  <!-- V3.x: pnlBlack is now a <fullscreencollider> without depth,  -->
+  <!-- so the old "move pnlBlack above the image" trick no longer   -->
+  <!-- matches. Instead, tint the loading_image texture pure black: -->
+  <!-- whatever background the game picks renders as solid black.   -->
+  <!-- Tips text and the progress bar are separate elements and     -->
+  <!-- stay visible. Safety net on top of loadingscreen.xml and     -->
+  <!-- LoadingScreenPatch.cs.                                       -->
   <!-- ============================================================ -->
 
-  <set xpath="/windows/window[@name='loadingScreen']/panel[@name='pnlBlack']/@depth">3</set>
+  <set xpath="/windows/window[@name='loadingScreen']/texture[@name='loading_image']/@color">0,0,0,255</set>
+
+  <!-- ============================================================ -->
+  <!-- 7 Days For Kids — Main Menu Background                       -->
+  <!-- V3.x main menu plays /Video/MenuBackground in a loop (shows  -->
+  <!-- a zombie eating a person). Remove the video and the fallback -->
+  <!-- art texture: only the solid black sprite remains. No game    -->
+  <!-- code looks these elements up by name, so removal is safe.    -->
+  <!-- ============================================================ -->
+
+  <remove xpath="/windows/window[@name='menuBackground']/video[@name='videoTexture']"/>
+  <remove xpath="/windows/window[@name='menuBackground']/texture[@name='bgTexture']"/>
 
 </configs>

@@ -2,8 +2,8 @@
 <xml>
 	<Name value="7DaysForKids" />
 	<DisplayName value="7 Days For Kids" />
-	<Description value="Kid-friendly mod: colorful zombie names, clean loading screens, no gore effects" />
+	<Description value="Kid-friendly mod: zombies and wolves become colored capsules, no gore, black loading, startup and menu backgrounds" />
 	<Author value="mblua" />
-	<Version value="1.0.0" />
-	<Website value="https://github.com/mblua/7-days-to-die-for-kids" />
+	<Version value="1.1.0" />
+	<Website value="https://github.com/mblua/7dtd-for-kids" />
 </xml>

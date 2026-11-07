@@ -36,7 +36,10 @@ namespace SevenDaysForKids
             // vultures, boars). Zombie animals use EntityEnemyAnimal,
             // EntityZombieDog, EntityVulture — none extend EntityAnimal,
             // so we check by name instead of C# type.
-            if (!(entity is EntityZombie) && !className.StartsWith("animalZombie"))
+            // Also allow specific non-zombie hostile animals (wolves) listed
+            // in ZombieColorScript.ExtraAnimals.
+            if (!(entity is EntityZombie) && !className.StartsWith("animalZombie")
+                && !ZombieColorScript.ExtraAnimals.Contains(className))
                 return;
 
             string baseName = className;
@@ -149,6 +152,18 @@ namespace SevenDaysForKids
             { "animalZombieBoar",     HexColor("556B2F") },  // Dark olive green
             { "animalZombieDog",      HexColor("708090") },  // Slate gray
             { "animalZombieVulture",  HexColor("2F4F4F") },  // Dark slate
+            // Wolves (regular hostile animals, not zombies) — see ExtraAnimals
+            { "animalWolf",           HexColor("A9A9A9") },  // Light gray
+            { "animalDireWolf",       HexColor("1E90FF") },  // Dodger blue
+            { "animalCoyote",         HexColor("E2B270") },  // Sand
+        };
+
+        // Non-zombie entity classes that also get a capsule.
+        public static readonly HashSet<string> ExtraAnimals = new HashSet<string>
+        {
+            "animalWolf",
+            "animalDireWolf",
+            "animalCoyote",
         };
 
         void Start()
@@ -240,7 +255,14 @@ namespace SevenDaysForKids
                 _primitiveObj.transform.localPosition = Vector3.up * 0.5f;
                 _primitiveObj.transform.localScale = new Vector3(0.7f, 0.6f, 0.9f);
             }
-            else if (EntityClassName != null && EntityClassName.Contains("Dog"))
+            else if (EntityClassName != null && EntityClassName.Contains("DireWolf"))
+            {
+                // Dire wolf is noticeably bigger than a regular wolf
+                _primitiveObj.transform.localPosition = Vector3.up * 0.5f;
+                _primitiveObj.transform.localScale = new Vector3(0.6f, 0.6f, 0.9f);
+            }
+            else if (EntityClassName != null &&
+                     (EntityClassName.Contains("Dog") || EntityClassName.Contains("Wolf") || EntityClassName.Contains("Coyote")))
             {
                 _primitiveObj.transform.localPosition = Vector3.up * 0.3f;
                 _primitiveObj.transform.localScale = new Vector3(0.4f, 0.4f, 0.6f);

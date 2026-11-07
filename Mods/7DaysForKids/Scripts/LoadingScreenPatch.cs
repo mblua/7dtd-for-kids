@@ -20,8 +20,10 @@ namespace SevenDaysForKids
         {
             EnsureBlackTexture();
 
-            // Strategy 1: Use reflection to access m_ImageFullScreen field
-            if (TryBlackoutField(__instance))
+            // Strategy 1: Use reflection to access the background texture field
+            // (V3.x: backgroundTextureView; older builds: m_ImageFullScreen)
+            if (TryBlackoutField(__instance, "backgroundTextureView") ||
+                TryBlackoutField(__instance, "m_ImageFullScreen"))
                 return;
 
             // Strategy 2: Find all XUiV_Texture views via the controller's view tree
@@ -43,10 +45,9 @@ namespace SevenDaysForKids
             Object.DontDestroyOnLoad(_blackTex);
         }
 
-        private static bool TryBlackoutField(XUiC_LoadingScreen instance)
+        private static bool TryBlackoutField(XUiC_LoadingScreen instance, string fieldName)
         {
-            // XUiC_LoadingScreen has m_ImageFullScreen (found via DLL metadata scan)
-            FieldInfo field = typeof(XUiC_LoadingScreen).GetField("m_ImageFullScreen",
+            FieldInfo field = typeof(XUiC_LoadingScreen).GetField(fieldName,
                 BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             if (field == null)
                 return false;

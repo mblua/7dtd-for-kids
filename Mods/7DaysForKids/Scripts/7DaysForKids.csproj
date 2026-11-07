@@ -10,7 +10,9 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
     <!-- Game install path — adjust if installed elsewhere -->
-    <GameDir>C:\Program Files (x86)\Steam\steamapps\common\7 Days To Die</GameDir>
+    <!-- Override at build time with: dotnet build -p:GameDir="..." -->
+    <GameDir Condition="'$(GameDir)' == ''">D:\SteamLibrary\steamapps\common\7 Days To Die</GameDir>
+    <Version>1.1.0</Version>
 
     <!-- Suppress warnings for game DLL references missing XML docs -->
     <NoWarn>CS1701;CS1702</NoWarn>

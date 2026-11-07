@@ -58,6 +58,17 @@ namespace SevenDaysForKids
             {
                 Log.Error(TAG + "PatchAll FAILED: " + ex);
             }
+
+            // The startup background window may already exist before mods
+            // load — black it out right away too.
+            try
+            {
+                StartupBackground.ApplyFromScene();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(TAG + "StartupBackground FAILED: " + ex);
+            }
         }
     }
 }
