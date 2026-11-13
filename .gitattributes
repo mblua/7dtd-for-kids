@@ -1,0 +1,13 @@
+# Default: normalize all text files to LF, in the repo and on checkout.
+* text=auto eol=lf
+
+# Windows batch files need CRLF (cmd.exe can mis-handle labels/goto with LF).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never touch.
+*.dll binary
+*.png binary
+*.jpg binary
+*.unity3d binary
+*.bundle binary
